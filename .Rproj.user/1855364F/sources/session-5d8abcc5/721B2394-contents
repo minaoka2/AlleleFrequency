@@ -1,0 +1,151 @@
+## **Loading packages**
+```{r echo = TRUE, warning = FALSE, message = FALSE}
+setwd("D:/Downloads/mirai_analysis")
+library(dplyr)
+library(readr)
+library(readxl)
+library(vcfR)
+library(gaston)
+library(NAM)
+```
+
+## **Reading in VCF file and saving SNP's as new file**
+```{r echo = TRUE, warning = FALSE}
+# filepath1 <- "06_oh13-22_lines_imp.vcf.gz"
+# x1 <- read.vcfR(filepath1)  # using read.vcfR function to read in vcf file
+# #x2 <- as.matrix(x1)
+# head(x1)
+# x1 <- set.stats(x1)
+# #X[1:10,1:10] <- as.matrix(x1)
+# write.csv(x1@snps, "X1 SNPs.csv")
+# write.csv(x1@ped, "X1 Ped.csv")
+```
+
+## **Reading in HapMap and cohort files**
+```{r echo = TRUE, warning = FALSE}
+# lines_hapmap_hmp <- read_csv("lines_hapmap.hmp.csv")  # read in hmp numeric file as csv file
+# #geno <- Import_data(lines_hapmap_hmp, type = "HapMap")  # transform column names into hmp format
+# 
+# # used galaxy to convert file from hapmap to numeric
+# hmp_numeric <- read_table("hapmap_format.tabular")  # read in tabular hmp file as table
+# head(hmp_numeric)
+# View(hmp_numeric)
+
+# OH13_OH24_Cohorts <- read_excel("OH13-OH24 Cohorts.xlsx", sheet=2)  # read in cohorts file
+# head(OH13_OH24_Cohorts)
+# View(OH13_OH24_Cohorts)
+
+```
+
+## **Allele frequencies calculation**
+```{r echo = TRUE, warning = FALSE}
+# i = 1
+# line = 11 + i   # start at 12th column where first OSU line begins
+# # hmp_numeric[1,line:ncol(hmp_numeric)]
+# 
+# m <- as.matrix(hmp_numeric[,line:ncol(hmp_numeric)])  # convert hmp to matrix with first 11 columns we don't need removed
+# rownames(m)=hmp_numeric$`rs#`   # setting row names of matrix to marker name
+# View(m)
+# tm <- t(m)  # transposing matrix aka flip columns and rows
+# #View(tm)
+# write.csv(tm, "C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/markers_matrix.csv", row.names = TRUE)
+markers_matrix <- read_csv("markers_matrix.csv")
+
+#merging marker file and cohorts file by lines in marker file
+merged_mat3 <- left_join(markers_matrix, OH13_OH24_Cohorts, by = join_by('line' == 'NAME'))
+# write.csv(merged_mat3, "C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/merged_mat3.csv", row.names = TRUE)
+merged_mat3 <- read_csv("merged_mat3.csv")
+
+# # subsetting of data
+# geno_count <- table(tm[,1]) # counts freq of 0,1,2 in the first column and stores in table the count value
+# 
+# # multiplying count of 0 freq by 2 and adding it to count of 1 freq, then dividing everything by # of cols in tm file times 2
+# maf <- (geno_count[1]*2 + geno_count[2])/(ncol(tm)*2)
+# maf
+# 
+# col = 1
+# get_maf <- function(col){
+#   #subsetting columns
+#   geno_count <- table(tm[,col])
+#   maf <- (geno_count[1]*2 + geno_count[2])/(ncol(tm)*2)
+#   names(maf) <- NULL
+#   return(maf)
+# }
+# x <- get_maf(2)
+# out_maf <- rep(NA,ncol(tm))
+# for (i in 1:ncol(tm)) {
+#   out_maf[i] <- get_maf(i)
+# }
+# 
+# get_maf_app <- function(col) {
+#   #automatically subsets by col
+#   geno_count <- table(col)
+#   maf <- (geno_count[1]*2 + geno_count[2])/(ncol(tm)*2)
+#   names(maf) <- NULL
+#   return(maf)
+# }
+# #View(geno_count)
+# out_maf_app <- apply(tm,2,get_maf_app)
+# # filter(Generation %in% c("YR1","YR2","YR3","YR4"))
+
+# function to subset data by cohort and write to csv file
+subset_data_by_cohort <- function(merged_mat3, cohorts, file_prefix) {
+  for (cohort in cohorts) {
+    # leave out cohort columns with NA and only filter for rows that match cohort passed into function
+    subset_data <- merged_mat3[!is.na(merged_mat3$cohort) & merged_mat3$cohort == cohort, ]
+    file_name <- paste0(file_prefix, "_", cohort, ".csv")
+    write.csv(subset_data, file = file_name, row.names = FALSE)
+  }
+}
+
+# running function for each cohort by passing vector of cohorts
+subset_data_by_cohort(merged_mat3, c("OH13", "OH14", "OH15", "OH16", "OH17", "OH18", "OH19", "OH20", "OH21", "OH22"), "subset_data")
+
+# saving output into csv files
+subset_data_OH13 <- read_csv("subset_data_OH13.csv")
+subset_data_OH14 <- read_csv("subset_data_OH14.csv")
+subset_data_OH15 <- read_csv("subset_data_OH15.csv")
+subset_data_OH16 <- read_csv("subset_data_OH16.csv")
+subset_data_OH17 <- read_csv("subset_data_OH17.csv")
+subset_data_OH18 <- read_csv("subset_data_OH18.csv")
+subset_data_OH19 <- read_csv("subset_data_OH19.csv")
+subset_data_OH20 <- read_csv("subset_data_OH20.csv")
+subset_data_OH21 <- read_csv("subset_data_OH21.csv")
+subset_data_OH22 <- read_csv("subset_data_OH22.csv")
+
+# calculating allele frequency
+data_set <- subset_data_OH13 # set trial dataset
+stages <-  c(2,3,4) # set trial stages
+get_allele_freq <- function(data_set, stages) {
+  # creating empty vector with the same number of columns as subset dataset
+  colmeanRow <- numeric(ncol(data_set))
+  stage <- stages[1] # set trial stage
+  #out_dataset <- list()
+  out_ams <- list()
+  for (stage in stages) {
+    cat("Processing stage", stage, "...\n")
+    subset_by_stage <- data_set[is.numeric(data_set$stage) & data_set$stage == stage, ]
+    #subset_by_stage <- data_set[data_set$stage == stage,]
+    # subset_by_stage <- subset_by_stage %>%
+    #   select(-line, -cohort, -stage)
+    # col <- 4 # set trial col
+    # for (col in 4:ncol(data_set)) {
+      avg_marker_score <- colMeans(subset_by_stage[,4:ncol(data_set)], na.rm = TRUE)
+      #cat("error:", subset_by_stage)
+      #row_means_new <- as.data.frame(t(avg_marker_score))
+      #names(row_means_new) <- paste0(names(row_means_new), "_mean")
+      row_means_new <- as.data.frame(data_set[1,])
+      row_means_new[1,1:3] <- c("mean_score",NA,NA)
+      row_means_new[1,4:ncol(data_set)] <- avg_marker_score
+      #data_set <- rbind(data_set, row_means_new) 
+      #out_dataset[[paste0("stage",stage)]] <- rbind(data_set, row_means_new)
+      #write.csv(subset_by_stage,"to_some_file.csv")
+      out_ams[[paste0("stage",stage)]] <- avg_marker_score
+    # }
+  }
+  return(out_ams)
+}
+out <- get_allele_freq(subset_data_OH13, c(2,3,4))
+rbout <- do.call(rbind,out)
+rbout[1:3,1:10]
+``` 

@@ -1,0 +1,118 @@
+---
+title: "Figures for Proposal Presentation"
+author: "Mirai Inaoka"
+date: "2024-04-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r dev = "png"}
+library(readxl)
+library(xlsx)
+library(ggimage)
+library(ggplot2)
+library(scales)
+library(stringr)
+OH_grain_crops <- read_excel("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/Proposal/Figures.xlsx", sheet = "Ohio_grain_crops")
+crop <- OH_grain_crops$crop
+harvest_acreage <- OH_grain_crops$harvested_acres
+datafr <- data.frame(crop, harvest_acreage, pics=c("https://static.vecteezy.com/system/resources/previews/024/253/882/non_2x/black-and-white-corn-icon-in-flat-style-vector.jpg","https://cdn0.iconfinder.com/data/icons/nature-life/128/soy-bean-512.png","https://d29fhpw069ctt2.cloudfront.net/clipart/image/102307/Wheat.png"))
+
+grain_acreage <- ggplot(datafr, aes(x = reorder(crop,harvest_acreage), y = harvest_acreage, fill = crop)) +
+  geom_image(aes(image = pics), size=c(0.12,0.13,0.08), position = position_stack(vjust = 1.05)) +
+  geom_bar(stat = "identity", alpha = 0.6, width = 0.4, show.legend = FALSE) +
+  scale_fill_manual(values = c("#80c75b",
+                               "#E65F33",
+                               "#660099")) +
+  scale_y_continuous(name = "Harvested acres", labels = comma) +
+  scale_x_discrete(labels = label_wrap(10)) +
+  geom_text(aes(label = scales::comma(harvest_acreage)),
+    color = "black",
+    angle = c(42, 40, 40),
+    vjust = c(3.9,4.15,4),
+    hjust = c(0.4,0.5,0.4),
+    #nudge_x = -0.25,
+    #nudge_y = 3.55,
+    size = 3.5,
+    check_overlap = TRUE) +
+  theme_classic(base_size = 18) +
+  coord_flip() +
+  labs(y = "Harvested Acres",
+       x = "Grain Crop",
+       title = str_wrap("Total Harvested Acreage of Grain Crops in Ohio in 2022",26)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 25),
+        axis.text.x = element_text(size=12),
+        axis.title.x = element_text(size = 17),
+        axis.text.y = element_text(size=15),
+        axis.title.y = element_text(size = 17))
+grain_acreage
+ggsave(grain_acreage, 
+       filename = "grain_acreage.png",
+       device = "png")
+```
+
+```{r dev = 'png'}
+library(readxl)
+library(xlsx)
+library(ggimage)
+library(ggplot2)
+library(scales)
+library(stringr)
+allele_inc <- read_excel("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/Proposal/Figures.xlsx", sheet = "allele_freq_inc")
+allele_inc_plot <- ggplot(allele_inc, aes(x = stage_testing, y = allele_freq, group = 1)) +
+  geom_line(stat = "identity", alpha = 0.9, color = "#660099", show.legend = FALSE) +
+  geom_point() +
+  ylim(0,1) +
+  theme_classic(base_size = 18) +
+  labs(y = "Allele Frequency",
+       x = "Stage of Testing")
+allele_inc_plot
+ggsave(allele_inc_plot, 
+       filename = "allele_inc_plot.png",
+       device = "png")
+```
+
+```{r dev = 'png'}
+library(readxl)
+library(xlsx)
+library(ggimage)
+library(ggplot2)
+library(scales)
+library(stringr)
+allele_no_change <- read_excel("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/Proposal/Figures.xlsx", sheet = "allele_freq_no_selection")
+allele_no_change_plot <- ggplot(allele_no_change, aes(x = stage_testing, y = allele_freq, group = 1)) +
+  geom_line(stat = "identity", alpha = 0.9, color = "#41b6e6", show.legend = FALSE) +
+  geom_point() +
+  ylim(0,1) +
+  theme_classic(base_size = 18) +
+  labs(y = "Allele Frequency",
+       x = "Stage of Testing")
+allele_no_change_plot
+ggsave(allele_no_change_plot, 
+       filename = "allele_no_change_plot.png",
+       device = "png")
+```
+
+```{r dev = 'png'}
+library(readxl)
+library(xlsx)
+library(ggimage)
+library(ggplot2)
+library(scales)
+library(stringr)
+allele_fix <- read_excel("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/Proposal/Figures.xlsx", sheet = "fixation")
+allele_fix_plot <- ggplot(allele_fix, aes(x = stage_testing, y = allele_freq, group = 1)) +
+  geom_line(stat = "identity", alpha = 0.9, color = "#55853D", show.legend = FALSE) +
+  geom_point() +
+  ylim(0,1) +
+  theme_classic(base_size = 18) +
+  labs(y = "Allele Frequency",
+       x = "Stage of Testing")
+allele_fix_plot
+ggsave(allele_fix_plot, 
+       filename = "allele_fix_plot.png",
+       device = "png")
+```

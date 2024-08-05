@@ -1,0 +1,22 @@
+PLINK v1.90b7.2 64-bit (11 Dec 2023)
+Options in effect:
+  --allow-extra-chr
+  --bfile tmp/ld.filt
+  --freq
+
+Hostname: WINDOWS-J8MNO17
+Working directory: C:\Users\Mirai\OneDrive - The Ohio State University\MS Research\R Code
+Start time: Sun Aug 04 23:18:42 2024
+
+Random number seed: 1722827922
+8006 MB RAM detected; reserving 4003 MB for main workspace.
+3452 variants loaded from .bim file.
+4823 people (0 males, 0 females, 4823 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to plink.nosex .
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 4823 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is exactly 1.
+--freq: Allele frequencies (founders only) written to plink.frq .
+
+End time: Sun Aug 04 23:18:42 2024

@@ -1,0 +1,46 @@
+---
+title: "Yield BLUP example"
+author: "Mirai Inaoka"
+date: "2024-04-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r dev = "png"}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+OH19_BLUP_Regression <- read_excel("OH19 BLUP Regression.xlsx")
+regression_fig <- ggplot(OH19_BLUP_Regression, aes(x=STAGE,y=YLD_BLUP)) +
+  geom_point(shape = 1, color = "#2E7FA1", size = 3) +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  theme_classic(base_size = 18) +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Maximum Stage of Testing",
+       y = "BLUP for Yield")
+regression_fig
+ggsave(regression_fig, 
+       filename = "regression_fig.png",
+       device = "png")
+```
+
+```{r}
+violin <- ggplot(OH19_BLUP_Regression, aes(x = STAGE, y = YLD_BLUP)) +
+  geom_violin(width = 1.4) +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.1) +
+  geom_jitter(position = position_jitter(seed = 1, width = 0.2)) +
+  theme_classic() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Stage of Testing",
+       y = "BLUP for Yield",
+       title = "Regression")
+violin
+```

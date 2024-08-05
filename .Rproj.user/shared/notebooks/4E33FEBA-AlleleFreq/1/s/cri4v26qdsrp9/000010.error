@@ -1,0 +1,1 @@
+{"frames":[{"func":"set.stats(x1)","file":"","line_number":0,"end_line_number":0,"character_number":0,"end_character_number":0},{"func":"stop(\"x must be an object of class bed.matrix\")","file":"","line_number":0,"end_line_number":0,"character_number":0,"end_character_number":0}],"message":"Error in set.stats(x1) : x must be an object of class bed.matrix\n"}

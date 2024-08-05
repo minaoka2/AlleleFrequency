@@ -1,0 +1,47 @@
+PLINK v1.90b7.2 64-bit (11 Dec 2023)
+Options in effect:
+  --allow-extra-chr
+  --bfile tmp/ld.filt
+  --indep-pairwise 250 10 0.4
+  --out tmp/ld.filt
+
+Hostname: WINDOWS-J8MNO17
+Working directory: C:\Users\Mirai\OneDrive - The Ohio State University\MS Research\R Code
+Start time: Sun Aug 04 23:18:41 2024
+
+Random number seed: 1722827921
+8006 MB RAM detected; reserving 4003 MB for main workspace.
+3452 variants loaded from .bim file.
+4823 people (0 males, 0 females, 4823 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to tmp/ld.filt.nosex .
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 4823 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is exactly 1.
+3452 variants and 4823 people pass filters and QC.
+Note: No phenotypes present.
+Pruned 101 variants from chromosome 27, leaving 60.
+Pruned 112 variants from chromosome 28, leaving 77.
+Pruned 74 variants from chromosome 29, leaving 27.
+Pruned 124 variants from chromosome 30, leaving 84.
+Pruned 610 variants from chromosome 31, leaving 77.
+Pruned 118 variants from chromosome 32, leaving 45.
+Pruned 72 variants from chromosome 33, leaving 68.
+Pruned 120 variants from chromosome 34, leaving 102.
+Pruned 15 variants from chromosome 35, leaving 22.
+Pruned 56 variants from chromosome 36, leaving 50.
+Pruned 46 variants from chromosome 37, leaving 37.
+Pruned 5 variants from chromosome 38, leaving 11.
+Pruned 70 variants from chromosome 39, leaving 55.
+Pruned 142 variants from chromosome 40, leaving 64.
+Pruned 11 variants from chromosome 41, leaving 12.
+Pruned 77 variants from chromosome 42, leaving 52.
+Pruned 78 variants from chromosome 43, leaving 81.
+Pruned 49 variants from chromosome 44, leaving 33.
+Pruned 151 variants from chromosome 45, leaving 113.
+Pruned 133 variants from chromosome 46, leaving 73.
+Pruned 115 variants from chromosome 47, leaving 30.
+Pruning complete.  2279 of 3452 variants removed.
+Marker lists written to tmp/ld.filt.prune.in and tmp/ld.filt.prune.out .
+
+End time: Sun Aug 04 23:18:41 2024

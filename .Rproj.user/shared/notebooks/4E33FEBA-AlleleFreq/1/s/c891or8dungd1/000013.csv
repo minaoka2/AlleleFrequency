@@ -1,0 +1,5 @@
+"0","subset_OH13_stage12 <- outer_join(subset_OH13_stage_1, subset_OH13_stage_2)
+"
+"2","Error in outer_join(subset_OH13_stage_1, subset_OH13_stage_2) : 
+  could not find function ""outer_join""
+"
