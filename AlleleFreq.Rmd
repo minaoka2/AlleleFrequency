@@ -1,0 +1,375 @@
+## **Loading packages **
+```{r echo = TRUE, warning = FALSE, message = FALSE}
+library(dplyr)
+library(readr)
+library(readxl)
+library(vcfR)
+library(gaston)
+```
+
+## **Reading in VCF file and filtering SNP's for linkage disequilibrium (LD)**
+```{r echo = TRUE, warning = FALSE}
+# setting path of folder containing plink
+setwd("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code")
+plink_path <- "\"C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/plink_win64_20231211/plink.exe\""
+system("cmd.exe", input = plink_path)
+filepath1 <- "Raw Data Files/06_oh13-22_lines_imp.vcf.gz"
+options(gaston.autosomes = paste0(rep(1:7,3),c("A","B","D")))   # specifying wheat chromosomes
+x1 <- read.vcf(filepath1, convert.chr = FALSE)  # using read.vcf function to read in vcf file
+ifelse(!dir.exists("tmp"),dir.create("tmp"),print("dir exists"))
+ldfile <- "tmp/ld.filt"
+write.bed.matrix(x1,ldfile)
+# 0.3 is too stringent
+command <- paste(plink_path,"--bfile",ldfile,"--allow-extra-chr","--indep-pairwise 250 10 0.4","--out",ldfile)
+system("cmd.exe", input = command)
+ldfilt <- read.table(paste0(ldfile,".prune.in"))        # read in filtered markers
+# generate MAF for each SNP
+command2 <- paste(plink_path, "--bfile", ldfile, "--freq", "--allow-extra-chr")
+system("cmd.exe", input = command2)
+# read in frequency results as table
+freq_plink <- read.table("plink.frq")
+
+#write.csv(x1@snps, "X1 SNPs.csv")
+#write.csv(x1@ped, "X1 Ped.csv")
+```
+
+## **Reading in HapMap and cohort files**
+```{r echo = TRUE, warning = FALSE}
+lines_hapmap_hmp <- read_csv("lines_hapmap.hmp.csv")  # read in hmp numeric file as csv file
+#geno <- Import_data(lines_hapmap_hmp, type = "HapMap")  # transform column names into hmp format
+
+# used galaxy to convert file from hapmap to numeric format
+hmp_numeric <- read_table("hapmap_format.tabular")  # read in tabular hmp file as table
+head(hmp_numeric)
+
+OH13_OH24_Cohorts <- read_excel("OH13-OH24 Cohorts.xlsx", sheet=2)  # read in cohorts file
+```
+
+## **Filtering markers that were pruned from dataset**
+```{r echo = TRUE, warning = FALSE}
+# convert to character marker names to keep
+markers_to_keep <- as.character(ldfilt$V1)
+# select column names only matching the filtered ones and save to new df
+markers_filtered_ld <- new_marker_matrix %>%
+  select(all_of(markers_to_keep))
+markers_filtered_cbind <- cbind(markers_to_keep, new_marker_matrix[,3:6])
+```
+
+## **Subsetting markers dataset by cohort and stage of testing**
+```{r echo = TRUE, warning = FALSE}
+#merging marker file and cohorts file by lines in marker file
+#merged_mat3 <- left_join(markers_matrix, OH13_OH24_Cohorts, by = join_by('line' == 'NAME'))
+
+# new fixed matrix dataset
+#marker_matrix2 <- read_excel("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/Raw Data Files/Marker_Matrix.xlsx", sheet = "DATA")
+# filtering only for lines in GS and VARDEV
+new_marker_matrix <- read_csv("new_marker_matrix.csv")
+write.csv(new_marker_matrix, "C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/new_marker_matrix.csv", row.names = TRUE)
+
+# function to subset data by cohort and write to csv file
+subset_data_by_cohort <- function(marker_matrix, cohorts, file_prefix) {
+  for (cohort in cohorts) {
+    # leave out cohort columns with NA and only filter for rows that match cohort passed into function
+    subset_data <- marker_matrix[!is.na(marker_matrix$cohort) & marker_matrix$cohort == cohort, ]
+    file_name <- paste0(file_prefix, "_", cohort, ".csv")
+    write.csv(subset_data, file = file_name, row.names = FALSE)
+  }
+}
+
+# running function for each cohort by passing vector of cohorts
+subset_data_by_cohort(new_marker_matrix, c("OH13", "OH14", "OH15", "OH16", "OH17", "OH18", "OH19", "OH20", "OH21", "OH22"), "subset_data")
+
+# saving output into csv files
+subset_data_OH13 <- read_csv("subset_data_OH13.csv")
+subset_data_OH14 <- read_csv("subset_data_OH14.csv")
+subset_data_OH15 <- read_csv("subset_data_OH15.csv")
+subset_data_OH16 <- read_csv("subset_data_OH16.csv")
+subset_data_OH17 <- read_csv("subset_data_OH17.csv")
+subset_data_OH18 <- read_csv("subset_data_OH18.csv")
+subset_data_OH19 <- read_csv("subset_data_OH19.csv")
+subset_data_OH20 <- read_csv("subset_data_OH20.csv")
+subset_data_OH21 <- read_csv("subset_data_OH21.csv")
+subset_data_OH22 <- read_csv("subset_data_OH22.csv")
+
+# function to subset data by stage and write to csv file
+subset_data_by_stage <- function(data, stages, file_prefix) {
+  for (stage in stages) {
+    # leave out stage columns with NA and only filter for rows that match stage passed into function
+    subset_data <- data[!is.na(data$stage) & data$stage == stage, ]
+    file_name <- paste0(file_prefix, "_", stage, ".csv")
+    write.csv(subset_data, file = file_name, row.names = FALSE)
+  }
+}
+
+datasets <- list(subset_data_OH13, subset_data_OH14, subset_data_OH15, subset_data_OH16, subset_data_OH17, subset_data_OH18, subset_data_OH19, subset_data_OH20, subset_data_OH21, subset_data_OH22)
+prefix <- list("subset_OH13_stage", "subset_OH14_stage", "subset_OH15_stage", "subset_OH16_stage", "subset_OH17_stage", "subset_OH18_stage", "subset_OH19_stage", "subset_OH20_stage", "subset_OH21_stage", "subset_OH22_stage")
+ndataset <- length(datasets)
+
+# subsetting cohort datasets into stages via lapply
+# applying function to all 10 datasets with 1:ndataset
+invisible(lapply(1:ndataset, function(x, dat, pre) {
+    subset_data_by_stage(dat[[x]], 1:4, pre[[x]]) 
+  }, dat=datasets, pre=prefix))
+
+#paste("subset_OH",13:22,sep="")
+paste0("subset_OH",13:22,"_stage_",1:4,".csv")
+
+eg <- expand.grid(cohort=13:22, stage=1:4)
+file_names <- paste0("subset_OH", eg$cohort, "_stage_", eg$stage, ".csv")
+# 
+subset_stages <- lapply(file_names, read_csv)
+
+# takes all files in directory and saves it as an array in variable
+
+cohort <- 13
+stage <- 1
+
+# deletes everything from global environment
+# ctrl shift A to fix indentation
+rm(list=ls())
+
+for (cohort in 13:22) {
+  for (stage in 1:4) {
+    var_name <- paste0("subset_OH", cohort, "_stage_", stage)
+    file_names <-
+      paste0(
+        "C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/Subset by Stage/",
+        var_name,
+        ".csv"
+      )
+    df <- read.csv(file_names)
+    assign(var_name, df, envir = .GlobalEnv)
+  }
+}
+``` 
+
+## **Function to calculate allele frequencies**
+```{r echo = TRUE, warning = FALSE}
+get_allele_freq <- function(data_set, file_prefix) {
+  # creating empty vector with the same number of columns as subset dataset
+  colmeanRow <- numeric(ncol(data_set))
+  # creating list of elements of different types
+  out_ams <- list()
+    # creating new variable to store allele freq of each marker in all the columns, starting with 6th column where marker starts and ignoring any NA's
+  avg_marker_score <- colMeans(data_set[,6:ncol(data_set)], na.rm = TRUE) / 2
+  # creates matrix filled with NA values and number of columns is set to ncol in passed dataset
+  new_mean_row <- as.data.frame(matrix(NA, nrow = 1, ncol = ncol(data_set)))
+  # set colnames of new_mean_row to colnames of passed dataset
+  colnames(new_mean_row) <- colnames(data_set)
+  # assign calculated column means to columns starting with 6th column in new row
+  new_mean_row[1,6:ncol(data_set)] <- avg_marker_score
+  #rownames(data_set)[nrow(data_set)] <- "Allele Frequency"
+    #colmeanRow <- as.data.frame(t(avg_marker_score))
+  out_ams <- rbind(data_set, new_mean_row)
+  file_name <- paste0(file_prefix, "allele_freq", ".csv")
+  write.csv(out_ams, file = file_name, row.names = TRUE)
+  return(out_ams)
+}
+```
+
+
+## **Testing functions on test dataset**
+```{r echo = TRUE, warning = FALSE}
+# creating small test dataset
+test_df <- data.frame(
+  drop = c("X", "X", "X", "X", "X", "X", "X", "X"),
+  line_t = c("OH13-10-45", "OH13-20-435", "OH13-44-22", "OH13-51-983", "OH14-12-34", "OH14-13-23", "OH15-23-15", "OH15-48-03"),
+  cohort_t = c("OH13", "OH13", "OH13", "OH13", "OH14", "OH14", "OH15", "OH15"),
+  proj = c("GS", "GS", "GS", "GS", "GS", "GS", "GS", "GS"),
+  stage = c(4, 2, 2, 2, 4, 4, 1, 1),
+  S1A_4499966 = c(2, 0, 1, 2, 1, 2, 1, 0),
+  S2A_5485966 = c(0, 0, 1, 2, 1, 1, 0, 1),
+  S3A_7778966 = c(1, 1, 2, 0, 2, 2, 1, 2)
+)
+
+# run functions on test dataset
+# cohort function works !
+subset_data_by_cohort(test_df, c("OH13", "OH14", "OH15"), "cohort_test")
+
+cohort_test_OH13 <- read_csv("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/cohort_test_OH13.csv")
+cohort_test_OH14 <- read_csv("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/cohort_test_OH14.csv")
+cohort_test_OH15 <- read_csv("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/cohort_test_OH15.csv")
+
+test_datasets <- list(cohort_test_OH13, cohort_test_OH14, cohort_test_OH15)
+test_prefix <- list("cohort_test_OH13_stage", "cohort_test_OH14_stage", "cohort_test_OH15_stage")
+ndataset_test <- length(test_datasets)
+
+# stage function works !
+invisible(lapply(1:ndataset_test, function(x, dat, pre) {
+    subset_data_by_stage(dat[[x]], 1:4, pre[[x]]) 
+  }, dat=test_datasets, pre=test_prefix))
+
+# saving stage files to df's works !
+for (cohort in 13:15) {
+  for (stage in 1:4) {
+    var_name <- paste0("cohort_test_OH", cohort, "_stage_", stage)
+    file_names <- paste0(
+        "C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/Test Data/",
+        var_name,
+        ".csv"
+      )
+    df <- read.csv(file_names)
+    assign(var_name, df, envir = .GlobalEnv)
+  }
+  # print(paste("Trying to read:", file_names))
+}
+
+get_allele_freq(cohort_test_OH13_stage_2, "OH13_test_stage_2")
+get_allele_freq(cohort_test_OH14_stage_4, "OH14_test_stage_4")
+get_allele_freq(cohort_test_OH15_stage_1, "OH15_test_stage_1")
+
+# my_files <- list.files("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/Subset by Stage/", "[.csv]$")
+
+```
+
+## **Running allele frequencies function on all datasets**
+```{r echo = TRUE, warning = FALSE}
+# running allele freq function on each individual stage
+datasets <- list(subset_OH13_stage_1, subset_OH13_stage_2, subset_OH13_stage_3, subset_OH13_stage_4, subset_OH14_stage_1, subset_OH14_stage_2, subset_OH14_stage_3, subset_OH14_stage_4, subset_OH15_stage_1, subset_OH15_stage_2, subset_OH15_stage_3, subset_OH15_stage_4, subset_OH16_stage_1, subset_OH16_stage_2, subset_OH16_stage_3, subset_OH16_stage_4, subset_OH17_stage_1, subset_OH17_stage_2, subset_OH17_stage_3, subset_OH17_stage_4, subset_OH18_stage_1, subset_OH18_stage_2, subset_OH18_stage_3, subset_OH18_stage_4, subset_OH19_stage_1, subset_OH19_stage_2, subset_OH19_stage_3, subset_OH19_stage_4, subset_OH20_stage_1, subset_OH20_stage_2, subset_OH20_stage_3, subset_OH20_stage_4, subset_OH21_stage_1, subset_OH21_stage_2, subset_OH21_stage_3, subset_OH21_stage_4, subset_OH22_stage_1, subset_OH22_stage_2, subset_OH22_stage_3, subset_OH22_stage_4)
+prefix <- list("subset_OH13_stage_1", "subset_OH13_stage_2", "subset_OH13_stage_3", "subset_OH13_stage_4", "subset_OH14_stage_1", "subset_OH14_stage_2", "subset_OH14_stage_3", "subset_OH14_stage_4", "subset_OH15_stage_1", "subset_OH15_stage_2", "subset_OH15_stage_3", "subset_OH15_stage_4", "subset_OH16_stage_1", "subset_OH16_stage_2", "subset_OH16_stage_3", "subset_OH16_stage_4", "subset_OH17_stage_1", "subset_OH17_stage_2", "subset_OH17_stage_3", "subset_OH17_stage_4", "subset_OH18_stage_1", "subset_OH18_stage_2", "subset_OH18_stage_3", "subset_OH18_stage_4", "subset_OH19_stage_1", "subset_OH19_stage_2", "subset_OH19_stage_3", "subset_OH19_stage_4", "subset_OH20_stage_1", "subset_OH20_stage_2", "subset_OH20_stage_3", "subset_OH20_stage_4", "subset_OH21_stage_1", "subset_OH21_stage_2", "subset_OH21_stage_3", "subset_OH21_stage_4", "subset_OH22_stage_1", "subset_OH22_stage_2", "subset_OH22_stage_3", "subset_OH22_stage_4")
+ndataset <- length(datasets)
+
+invisible(lapply(1:ndataset, function(x, dat, pre) {
+    get_allele_freq(dat[[x]], pre[[x]]) 
+  }, dat=datasets, pre=prefix))
+
+
+# combining multiple stages in each dataframe
+subset_OH13_YR4 <- rbind(subset_OH13_stage_4)
+subset_OH13_YR3 <- rbind(subset_OH13_stage_3, subset_OH13_stage_4)
+subset_OH13_YR2 <- rbind(subset_OH13_stage_2, subset_OH13_stage_3, subset_OH13_stage_4)
+subset_OH13_YR1 <- rbind(subset_OH13_stage_1, subset_OH13_stage_2, subset_OH13_stage_3, subset_OH13_stage_4)
+
+subset_OH14_YR4 <- rbind(subset_OH14_stage_4)
+subset_OH14_YR3 <- rbind(subset_OH14_stage_3, subset_OH14_stage_4)
+subset_OH14_YR2 <- rbind(subset_OH14_stage_2, subset_OH14_stage_3, subset_OH14_stage_4)
+subset_OH14_YR1 <- rbind(subset_OH14_stage_1, subset_OH14_stage_2, subset_OH14_stage_3, subset_OH14_stage_4)
+
+subset_OH15_YR4 <- rbind(subset_OH15_stage_4)
+subset_OH15_YR3 <- rbind(subset_OH15_stage_3, subset_OH15_stage_4)
+subset_OH15_YR2 <- rbind(subset_OH15_stage_2, subset_OH15_stage_3, subset_OH15_stage_4)
+subset_OH15_YR1 <- rbind(subset_OH15_stage_1, subset_OH15_stage_2, subset_OH15_stage_3, subset_OH15_stage_4)
+
+subset_OH16_YR4 <- rbind(subset_OH16_stage_4)
+subset_OH16_YR3 <- rbind(subset_OH16_stage_3, subset_OH16_stage_4)
+subset_OH16_YR2 <- rbind(subset_OH16_stage_2, subset_OH16_stage_3, subset_OH16_stage_4)
+subset_OH16_YR1 <- rbind(subset_OH16_stage_1, subset_OH16_stage_2, subset_OH16_stage_3, subset_OH16_stage_4)
+
+subset_OH17_YR4 <- rbind(subset_OH17_stage_4)
+subset_OH17_YR3 <- rbind(subset_OH17_stage_3, subset_OH17_stage_4)
+subset_OH17_YR2 <- rbind(subset_OH17_stage_2, subset_OH17_stage_3, subset_OH17_stage_4)
+subset_OH17_YR1 <- rbind(subset_OH17_stage_1, subset_OH17_stage_2, subset_OH17_stage_3, subset_OH17_stage_4)
+
+subset_OH18_YR4 <- rbind(subset_OH18_stage_4)
+subset_OH18_YR3 <- rbind(subset_OH18_stage_3, subset_OH18_stage_4)
+subset_OH18_YR2 <- rbind(subset_OH18_stage_2, subset_OH18_stage_3, subset_OH18_stage_4)
+subset_OH18_YR1 <- rbind(subset_OH18_stage_1, subset_OH18_stage_2, subset_OH18_stage_3, subset_OH18_stage_4)
+
+subset_OH19_YR4 <- rbind(subset_OH19_stage_4)
+subset_OH19_YR3 <- rbind(subset_OH19_stage_3, subset_OH19_stage_4)
+subset_OH19_YR2 <- rbind(subset_OH19_stage_2, subset_OH19_stage_3, subset_OH19_stage_4)
+subset_OH19_YR1 <- rbind(subset_OH19_stage_1, subset_OH19_stage_2, subset_OH19_stage_3, subset_OH19_stage_4)
+
+subset_OH20_YR4 <- rbind(subset_OH20_stage_4)
+subset_OH20_YR3 <- rbind(subset_OH20_stage_3, subset_OH20_stage_4)
+subset_OH20_YR2 <- rbind(subset_OH20_stage_2, subset_OH20_stage_3, subset_OH20_stage_4)
+subset_OH20_YR1 <- rbind(subset_OH20_stage_1, subset_OH20_stage_2, subset_OH20_stage_3, subset_OH20_stage_4)
+
+subset_OH21_YR4 <- rbind(subset_OH21_stage_4)
+subset_OH21_YR3 <- rbind(subset_OH21_stage_3, subset_OH21_stage_4)
+subset_OH21_YR2 <- rbind(subset_OH21_stage_2, subset_OH21_stage_3, subset_OH21_stage_4)
+subset_OH21_YR1 <- rbind(subset_OH21_stage_1, subset_OH21_stage_2, subset_OH21_stage_3, subset_OH21_stage_4)
+
+subset_OH22_YR4 <- rbind(subset_OH22_stage_4)
+subset_OH22_YR3 <- rbind(subset_OH22_stage_3, subset_OH22_stage_4)
+subset_OH22_YR2 <- rbind(subset_OH22_stage_2, subset_OH22_stage_3, subset_OH22_stage_4)
+subset_OH22_YR1 <- rbind(subset_OH22_stage_1, subset_OH22_stage_2, subset_OH22_stage_3, subset_OH22_stage_4)
+
+
+# running allele freq function on datasets with stages 1-2, 1-3, 1-4 using lapply
+datasets2 <- list(subset_OH13_YR1, subset_OH13_YR2, subset_OH13_YR3, subset_OH13_YR4, subset_OH14_YR1, subset_OH14_YR2, subset_OH14_YR3, subset_OH14_YR4, subset_OH15_YR1, subset_OH15_YR2, subset_OH15_YR3, subset_OH15_YR4, subset_OH16_YR1, subset_OH16_YR2, subset_OH16_YR3, subset_OH16_YR4, subset_OH17_YR1, subset_OH17_YR2, subset_OH17_YR3, subset_OH17_YR4, subset_OH18_YR1, subset_OH18_YR2, subset_OH18_YR3, subset_OH18_YR4, subset_OH19_YR1, subset_OH19_YR2, subset_OH19_YR3, subset_OH19_YR4, subset_OH20_YR1, subset_OH20_YR2, subset_OH20_YR3, subset_OH20_YR4, subset_OH21_YR1, subset_OH21_YR2, subset_OH21_YR3, subset_OH21_YR4, subset_OH22_YR1, subset_OH22_YR2, subset_OH22_YR3, subset_OH22_YR4)
+prefixes2 <- list("subset_OH13_YR1", "subset_OH13_YR2", "subset_OH13_YR3", "subset_OH13_YR4", "subset_OH14_YR1", "subset_OH14_YR2", "subset_OH14_YR3", "subset_OH14_YR4", "subset_OH15_YR1", "subset_OH15_YR2", "subset_OH15_YR3", "subset_OH15_YR4", "subset_OH16_YR1", "subset_OH16_YR2", "subset_OH16_YR3", "subset_OH16_YR4", "subset_OH17_YR1", "subset_OH17_YR2", "subset_OH17_YR3", "subset_OH17_YR4", "subset_OH18_YR1", "subset_OH18_YR2", "subset_OH18_YR3", "subset_OH18_YR4", "subset_OH19_YR1", "subset_OH19_YR2", "subset_OH19_YR3", "subset_OH19_YR4", "subset_OH20_YR1", "subset_OH20_YR2", "subset_OH20_YR3", "subset_OH20_YR4", "subset_OH21_YR1", "subset_OH21_YR2", "subset_OH21_YR3", "subset_OH21_YR4", "subset_OH22_YR1", "subset_OH22_YR2", "subset_OH22_YR3", "subset_OH22_YR4")
+ndataset2 <- length(datasets2)
+
+# calculate allele frequency for newly created YR files
+invisible(lapply(1:ndataset2, function(x, dat, pre) {
+    get_allele_freq(dat[[x]], pre[[x]]) 
+  }, dat=datasets2, pre=prefixes2))
+
+# pool allele frequencies for each cohort (stages 1-4) into one file
+last_row <- tail("subset_OH13_YR4allele_freq.csv", n = 1)
+```
+
+## **Extracting allele frequency values**
+```{r echo = TRUE, warning = FALSE} 
+# packages
+require(data.table)
+
+# set directory where YR csv files are located
+setwd("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/YR Files/")
+
+# import YR files all at once and save to one big dataset
+files = list.files(pattern = "*.csv")
+dataset = do.call(rbind, lapply(files, fread))
+rm(files)
+
+# transform YR dataset to df and then convert to csv
+dataset <- as.data.frame(unclass(dataset))
+write.csv(dataset,"dataset_allele.csv", row.names = FALSE)
+dataset_allele <- read_xlsx("dataset_allele.xlsx")
+
+# filter dataset_allele just for rows that contain frequency values and save to new df
+dataset_just_alleles <- dataset_allele %>%
+  filter(PROJ == "FREQ")
+# removing unnecessary columns
+dataset_alleles_clean <- dataset_just_alleles[-c(1,3)]
+write.csv(dataset_alleles_clean, "dataset")
+
+```
+
+## **Calculating changes in frequency**
+```{r echo = TRUE, warning = FALSE}
+change_calculation <- function(x) {
+  
+}
+apply(dataset_alleles_clean, 1, function(x) )
+# reshape2 dcast
+# dcast(data=output, cohort ~ stage.x + stage.y, value.var=“DIFF”)
+
+```
+
+## **Random sampling of lines**
+```{r echo = TRUE, warning = FALSE}
+# testing random sampling on OH13 stage 3 dataset
+# calculate and store specific percentage of rows (lines)
+ran_samp_percentage = round((nrow(subset_OH13_stage_3) * 0.216), 0)
+# randomly sample X percentage of lines
+# Set seed for reproducibility
+set.seed(100)
+subset_OH13_stage_3_random <- subset_OH13_stage_3[sample(nrow(subset_OH13_stage_3), ran_samp_percentage), ]
+
+# Reading in percent_advanced sheet from new_marker_matrix file
+percentage_advanced_df <- read_xlsx("C:/Users/Mirai/OneDrive - The Ohio State University/MS Research/R Code/Raw Data Files/percentage_matrix.xlsx")
+
+
+# Function to randomly sample X percent of rows from a data frame
+random_sample <- function(df, percent_advanced) {
+  sampled_df <- lapply(percent_advanced, function(percentage) {
+    sampling_percentage <- floor(percentage * nrow(df))
+    sampled_lines <- df[sample(nrow(df), sampling_percentage), ]
+    return(sampled_lines)
+  })
+  return(sampled_df)
+}
+
+# Function to calculate column means for a dataframe
+calculate_column_means <- function(df) {
+  col_means <- colMeans(df, na.rm = TRUE)
+  return(col_means)
+}
+
+# Set seed for reproducibility
+rnorm(10)
+set.seed(123)
+```
+
